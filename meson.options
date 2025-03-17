@@ -19,7 +19,7 @@ option('gadget',
 option('server',
   type: 'feature',
   value: 'auto',
-  description: 'Build frida-server',
+  description: 'Build frida-server', 
 )
 
 option('portal',
