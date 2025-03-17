@@ -1,0 +1,63 @@
+name: Build Frida for iOS
+
+on:
+  push:
+    branches:
+      - main  # Hoặc nhánh bạn muốn chạy
+
+jobs:
+  build-ios-deb:
+    runs-on: macos-latest  # Chạy trên máy macOS (cần thiết để build iOS)
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install python3 automake autoconf libtool pkg-config ninja
+          pip3 install meson
+
+      - name: Set up environment variables
+        run: |
+          echo "FRIDA_VERSION=16.7.0" >> $GITHUB_ENV
+          echo "FRIDA_PREFIX=$(pwd)/frida-build" >> $GITHUB_ENV
+
+      - name: Download Frida source
+        run: |
+          git clone --recursive https://github.com/frida/frida.git
+          cd frida
+          git checkout $FRIDA_VERSION
+          git submodule update --init --recursive
+
+      - name: Configure Frida build for iOS
+        run: |
+          cd frida
+          ./configure --prefix=$FRIDA_PREFIX --host=ios-arm64 --enable-gadget --enable-server --enable-portal --enable-inject --enable-frida-python --enable-frida-swift --enable-deb
+
+      - name: Compile Frida
+        run: |
+          cd frida
+          make -j$(sysctl -n hw.logicalcpu)
+
+      - name: Install Frida
+        run: |
+          cd frida
+          make install
+
+      - name: Package Frida into .deb
+        run: |
+          mkdir -p frida-deb/DEBIAN
+          echo "Package: frida" > frida-deb/DEBIAN/control
+          echo "Version: $FRIDA_VERSION" >> frida-deb/DEBIAN/control
+          echo "Architecture: iphoneos-arm" >> frida-deb/DEBIAN/control
+          echo "Maintainer: Frida Team" >> frida-deb/DEBIAN/control
+          echo "Description: Frida iOS Build" >> frida-deb/DEBIAN/control
+          mkdir -p frida-deb/usr/bin
+          cp $FRIDA_PREFIX/bin/frida-server frida-deb/usr/bin/frida-server
+          dpkg-deb --build frida-deb frida_${FRIDA_VERSION}_iphoneos-arm.deb
+
+      - name: Upload .deb as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frida-ios-deb
+          path: frida_${{ env.FRIDA_VERSION }}_iphoneos-arm.deb
