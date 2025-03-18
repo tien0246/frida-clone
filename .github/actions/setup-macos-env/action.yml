@@ -41,8 +41,8 @@ runs:
         security list-keychain -d user -s $KEYCHAIN_PATH
         rm $CERTIFICATE_PATH
         (
-          MACOS_CERTID=$(security find-identity -v -p codesigning | grep "Developer ID Application: " | awk '{ print $2 }')
-          IOS_CERTID=$(security find-identity -v -p codesigning | grep "Apple Development: " | awk '{ print $2 }')
+          MACOS_CERTID=$(security find-identity -v -p codesigning | grep "Frida Self-Signed Cert" | awk '{ print $2 }')
+          IOS_CERTID=$MACOS_CERTID
           echo MACOS_CERTID=$MACOS_CERTID
           echo IOS_CERTID=$IOS_CERTID
           echo WATCHOS_CERTID=$IOS_CERTID
